@@ -1,0 +1,17 @@
+{
+  "uuid": "ea4b4e0d-f335-49b4-b13f-91e9bb2bfcff",
+  "shortName": "pebblemoon",
+  "longName": "pebblemoon",
+  "companyName": "theprescotts",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "watchapp": {
+    "watchface": true
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}

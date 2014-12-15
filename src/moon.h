@@ -1,0 +1,1 @@
+unsigned char getMoonPixel(unsigned int x, unsigned int y);
