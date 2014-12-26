@@ -33,11 +33,11 @@ static void window_load(Window *window) {
   text_layer_set_text_alignment(time_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(time_layer));
   
-  int size = 72;
+  int size = 144;
   GBitmap* moon_bitmap = gbitmap_create_blank((GSize) { .w = size, .h = size });
   
   moon_layer = bitmap_layer_create((GRect) { 
-    .origin = { bounds.size.w/2 - size/2, bounds.size.h/2 - size/2 },
+    .origin = { bounds.size.w/2 - size/2, 20 + (bounds.size.h - 20)/2 - size/2 },
     .size = { size, size } });
   bitmap_layer_set_bitmap(moon_layer, moon_bitmap);
   layer_add_child(window_layer, bitmap_layer_get_layer(moon_layer));
@@ -74,9 +74,14 @@ static void update_time() {
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
   
+  float phase = 1.0f*tick_time->tm_min/60;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "phase: %d", (int16_t) (phase*100));
+  
   const GBitmap* bitmap = bitmap_layer_get_bitmap(moon_layer);
-  pm_moon_render(bitmap);
+  pm_moon_render(bitmap, phase);
   layer_mark_dirty((Layer *) moon_layer);
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "doner");
 }
 
 static void init(void) {

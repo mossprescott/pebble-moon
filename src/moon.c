@@ -78,10 +78,26 @@ unsigned char MOON[] = {
 #define MOON_WIDTH  72
 #define MOON_HEIGHT 72
 
-static unsigned char moon_pixel(unsigned int x, unsigned int y) {
-  return MOON[y*MOON_WIDTH + x];
+inline static float sq(float x) { return x*x; }
+
+static int16_t moon_pixel(int16_t x, int16_t y, float phase) {
+  if (x*x + y*y > 36*36) return -1;
+  else {
+    float p = (phase < 0.5) ? (1 - 4*phase) : (-3 + 4*phase); //cos(phase*2*pi);
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "p: %d/100", (int16_t) (p*100));
+    float e = sq(x/(p*36.0f)) + sq(y/36.0f);
+
+    if (phase < 0.25 && (x < 0 || e < 1)) return -1;
+    else if ((phase >= 0.25 && phase < 0.5) && (x < 0 && e > 1)) return -1;
+    else if ((phase >= 0.5 && phase < 0.75) && (x > 0 && e > 1)) return -1;
+    else if (phase >= 0.75 && (x > 0 || e < 1)) return -1;
+    else {
+      return MOON[(y+36)*MOON_WIDTH + (x+36)];
+    }
+  }
 }
 
+// True <=> black
 static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
   unsigned char* bits = bitmap->addr;
   
@@ -95,16 +111,74 @@ static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
   }
 }
 
-void pm_moon_render(const GBitmap* bitmap) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "Rendering moon...");
+#define BLACK 0
+#define WHITE 255
+#define HALF  127
 
-  for (uint16_t y = 0; y < bitmap->bounds.size.h; y++) {
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "  pixel: %d", (int) moon_pixel(0, y));
+/*
+Render the (rotated, masked) moon image into a bitmap, using Atkinson dithering.
+*/
+void pm_moon_render(const GBitmap* bitmap, float phase) {
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "Rendering moon...");
 
-    for (uint16_t x = 0; x < bitmap->bounds.size.w; x++) {
-      unsigned char p = moon_pixel(x, y);
-      set_pixel(bitmap, x, y, p != 43 && p > 80);
+  uint16_t width = bitmap->bounds.size.w;
+  uint16_t height = bitmap->bounds.size.h;
+
+  int16_t buf1[width+2];
+  int16_t buf2[width+2];
+  
+  int16_t* nextRow = buf1;
+  int16_t* secondRow = buf2;
+  memset(nextRow, 0, (width+2)*sizeof(int16_t));
+  
+  for (uint16_t y = 0; y < height; y++) {
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "  %d", y);
+
+    int16_t err0 = nextRow[0];
+    int16_t err1 = nextRow[1];
+    nextRow[0] = nextRow[1] = 0;
+    
+    for (uint16_t x = 0; x < width; x++) {
+      int16_t h = x - width/2;
+      int16_t v = y - height/2;
+      int16_t value = moon_pixel(h*MOON_WIDTH/width, v*MOON_HEIGHT/height, phase);
+      
+      if (value < 0) value = WHITE;
+      
+      int16_t corrected = value - err0;
+      
+      int16_t pix;
+      if (corrected < HALF) {
+        pix = BLACK;
+        set_pixel(bitmap, x, y, true);
+      }
+      else {
+        pix = WHITE;
+        set_pixel(bitmap, x, y, false);
+      }
+
+      // Error in the current pixel, divided by 8:
+      int16_t error = (pix - corrected) >> 3;
+
+      int16_t err2 = nextRow[x + 2];
+      nextRow[x+2] = 0;
+      secondRow[x] = 0;
+
+      // Diffuse the error to 6 neighboring pixels:
+      err1 += error;
+      err2 += error;
+      if (x > 0) nextRow[x-1] += error;
+      nextRow[x] += error;
+      nextRow[x+1] += error;
+      secondRow[x] += error;
+      
+      err0 = err1;
+      err1 = err2;
     }
+    
+    int16_t* tmp = nextRow;
+    nextRow = secondRow;
+    secondRow = tmp;
   }
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "...done");
