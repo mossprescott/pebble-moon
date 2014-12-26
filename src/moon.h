@@ -1,1 +1,3 @@
-unsigned char getMoonPixel(unsigned int x, unsigned int y);
+#include <pebble.h>
+
+void pm_moon_render(const GBitmap* bitmap);

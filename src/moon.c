@@ -78,6 +78,34 @@ unsigned char MOON[] = {
 #define MOON_WIDTH  72
 #define MOON_HEIGHT 72
 
-unsigned char getMoonPixel(unsigned int x, unsigned int y) {
-  return MOON[y*MOON_HEIGHT + MOON_WIDTH];
+static unsigned char moon_pixel(unsigned int x, unsigned int y) {
+  return MOON[y*MOON_WIDTH + x];
+}
+
+static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
+  unsigned char* bits = bitmap->addr;
+  
+  uint16_t byte_num = y*(bitmap->row_size_bytes) + (x >> 3);
+  uint16_t bit_num = x & 0x07;
+  if (bit) {
+    bits[byte_num] &= ~(1 << bit_num);
+  }
+  else {
+    bits[byte_num] |= 1 << bit_num;
+  }
+}
+
+void pm_moon_render(const GBitmap* bitmap) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Rendering moon...");
+
+  for (uint16_t y = 0; y < bitmap->bounds.size.h; y++) {
+    // APP_LOG(APP_LOG_LEVEL_DEBUG, "  pixel: %d", (int) moon_pixel(0, y));
+
+    for (uint16_t x = 0; x < bitmap->bounds.size.w; x++) {
+      unsigned char p = moon_pixel(x, y);
+      set_pixel(bitmap, x, y, p != 43 && p > 80);
+    }
+  }
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "...done");
 }
