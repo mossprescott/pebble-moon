@@ -50,10 +50,10 @@ static void window_unload(Window *window) {
   bitmap_layer_destroy(moon_layer);
 }
 
-static void update_time() {
-  // Get a tm structure
-  time_t temp = time(NULL); 
-  struct tm *tick_time = localtime(&temp);
+static void update_time(struct tm* tick_time) {
+  // // Get a tm structure
+  // time_t temp = time(NULL);
+  // struct tm *tick_time = localtime(&temp);
 
   // Create a long-lived buffer
   static char buffer[] = "00:00";
@@ -71,9 +71,7 @@ static void update_time() {
   text_layer_set_text(time_layer, buffer);
 }
 
-static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  update_time();
-  
+static void update_moon(struct tm* tick_time) {
   float phase = 1.0f*tick_time->tm_min/60;
   APP_LOG(APP_LOG_LEVEL_DEBUG, "phase: %d", (int16_t) (phase*100));
   
@@ -82,6 +80,11 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   layer_mark_dirty((Layer *) moon_layer);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "doner");
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  update_time(tick_time);
+  update_moon(tick_time);
 }
 
 static void init(void) {
@@ -97,6 +100,11 @@ static void init(void) {
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
   
   pm_sync_init();
+  
+  time_t temp = time(NULL);
+  struct tm *tick_time = localtime(&temp);
+  update_time(tick_time);
+  update_moon(tick_time);
 }
 
 
