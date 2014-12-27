@@ -72,11 +72,18 @@ static void update_time(struct tm* tick_time) {
 }
 
 static void update_moon(struct tm* tick_time) {
-  float phase = 1.0f*tick_time->tm_min/60;
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "phase: %d", (int16_t) (phase*100));
+  float dayFrac = (tick_time->tm_hour*60 + tick_time->tm_min)/(24*60.0f);
+  float hourFrac = tick_time->tm_min/60.0f;
+  // New moon every hour:
+  float phase = hourFrac;
+  // Rotate through 180 degrees each day (including from 45 left in the morning to 45 right in the evening):
+  float rotation = (dayFrac - 0.5f)/2;
+  
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "phase: %d", (int16_t) (phase*100));
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "hour: %d", (int16_t) tick_time->tm_hour);
   
   const GBitmap* bitmap = bitmap_layer_get_bitmap(moon_layer);
-  pm_moon_render(bitmap, phase);
+  pm_moon_render(bitmap, phase, rotation);
   layer_mark_dirty((Layer *) moon_layer);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "doner");

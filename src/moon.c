@@ -80,23 +80,110 @@ unsigned char MOON[] = {
 
 inline static float sq(float x) { return x*x; }
 
-static int16_t moon_pixel(int16_t x, int16_t y, float phase) {
-  if (x*x + y*y > 36*36) return -1;
-  else {
-    float p = (phase < 0.5) ? (1 - 4*phase) : (-3 + 4*phase); //cos(phase*2*pi);
-    // APP_LOG(APP_LOG_LEVEL_DEBUG, "p: %d/100", (int16_t) (p*100));
-    float e = sq(x/(p*36.0f)) + sq(y/36.0f);
+// sin and cos, for floats, using sin/cos_lookup
+// angle: 1.0f == π
+static float sin_f(float angle) {
+  return ((float) sin_lookup((int32_t) (angle*TRIG_MAX_ANGLE)))/TRIG_MAX_RATIO;
+}
+static float cos_f(float angle) {
+  return ((float) cos_lookup((int32_t) (angle*TRIG_MAX_ANGLE)))/TRIG_MAX_RATIO;
+}
 
-    if (phase < 0.25 && (x < 0 || e < 1)) return -1;
-    else if ((phase >= 0.25 && phase < 0.5) && (x < 0 && e > 1)) return -1;
-    else if ((phase >= 0.5 && phase < 0.75) && (x > 0 && e > 1)) return -1;
-    else if (phase >= 0.75 && (x > 0 || e < 1)) return -1;
+// // Pre-computed values used in looking up pixels:
+// typedef struct {
+//   uint16_t size;
+//   uint16_t sizeSq;
+//   uint16_t regime;
+//   float p;
+//   float sr;
+//   float cr;
+//   float oneOverSize;
+//   float oneOverPTimesSize;
+// } RenderParams;
+
+// Global storage for pre-computed values, because allocating them on the stack and
+// passing a reference around doesn't seem to work?!?
+// static RenderParams* params;
+
+// static void init_params(RenderParams* params, uint16_t size, float phase, float rotation) {
+//   phase = 0.2; // HACK
+//   rotation = -0.125; // HACK
+//
+//   params->size = size;
+//   params->sizeSq = size*size;
+//
+//   if (phase < 0.25) params->regime = 0;
+//   else if (phase < 0.5) params->regime = 1;
+//   else if (phase < 0.75) params->regime = 2;
+//   else params->regime = 3;
+//
+//   params->p = cos_f(phase);
+//   params->sr = sin_f(rotation);
+//   params->cr = cos_f(rotation);
+//   params->oneOverSize = 1.0f/size;
+//   params->oneOverPTimesSize = 1.0/(params->p * size);
+// }
+
+static int16_t moon_pixel(uint16_t radius, float phase, float rotation, int16_t x, int16_t y) {
+  // phase = 0.2; // HACK
+  // rotation = 0.125; // HACK
+
+  if (x*x + y*y > radius*radius) return -1;
+  else {
+    // return 127;
+    
+    float p = cos_f(phase);
+
+    float sr = sin_f(-rotation);
+    float cr = cos_f(-rotation);
+
+    double xr = x*cr - y*sr;
+    double yr = x*sr + y*cr;
+
+    float e = sq(xr/(p*radius)) + sq(yr/radius);
+
+    if (phase < 0.25 && (xr < 0 || e < 1)) return -1;
+    else if ((phase >= 0.25 && phase < 0.5) && (xr < 0 && e > 1)) return -1;
+    else if ((phase >= 0.5 && phase < 0.75) && (xr > 0 && e > 1)) return -1;
+    else if (phase >= 0.75 && (xr > 0 || e < 1)) return -1;
     else {
-      return MOON[(y+36)*MOON_WIDTH + (x+36)];
+      int16_t xp = (int16_t) (xr*MOON_WIDTH/(radius*2)) + MOON_WIDTH/2;
+      int16_t yp = (int16_t) (yr*MOON_HEIGHT/(radius*2)) + MOON_HEIGHT/2;
+      if (xp >= 0 && xp < MOON_WIDTH && yp >= 0 && yp < MOON_HEIGHT) {
+        return MOON[yp*MOON_WIDTH + xp];
+      } else {
+        return -1;
+      }
     }
   }
 }
 
+// static int16_t moon_pixel(RenderParams* params, int16_t x, int16_t y) {
+//   if (x*x + y*y > params->sizeSq) return -1;
+//   else {
+//     double xr = x*params.cr - y*params.sr;
+//     double yr = x*params.sr + y*params.cr;
+//
+//     float e = sq(xr * params.oneOverPTimesSize) + sq(yr * params.oneOverSize);
+//
+//     if (params.regime == 0 && (xr < 0 || e < 1)) return -1;
+//     else if (params.regime == 1 && (xr < 0 && e > 1)) return -1;
+//     else if (params.regime == 2 && (xr > 0 && e > 1)) return -1;
+//     else if (params.regime == 3 && (xr > 0 || e < 1)) return -1;
+//     else {
+//       int16_t xp = (uint16_t) (xr*MOON_WIDTH/params.size);
+//       int16_t yp = (uint16_t) (yr*MOON_HEIGHT/params.size);
+//
+//       if (xp >=0 && xp < MOON_WIDTH && yp <= 0 && yp < MOON_HEIGHT) {
+//         return MOON[(yp+36)*MOON_WIDTH + (xp+36)];
+//       } else {
+//         return -1;
+//       }
+//     }
+//   }
+// }
+
+// Set/clear a single pixel anywhere in the bitmap, without bounds checking.
 // True <=> black
 static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
   unsigned char* bits = bitmap->addr;
@@ -118,11 +205,19 @@ static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
 /*
 Render the (rotated, masked) moon image into a bitmap, using Atkinson dithering.
 */
-void pm_moon_render(const GBitmap* bitmap, float phase) {
+void pm_moon_render(const GBitmap* bitmap, float phase, float rotation) {
   // APP_LOG(APP_LOG_LEVEL_DEBUG, "Rendering moon...");
 
   uint16_t width = bitmap->bounds.size.w;
   uint16_t height = bitmap->bounds.size.h;
+
+  // RenderParams* params = malloc(sizeof(RenderParams));
+  // if (params == NULL) {
+  //   APP_LOG(APP_LOG_LEVEL_ERROR, "failed to allocate space for params");
+  //   return;
+  // }
+  // init_params(width, phase, rotation);
+  // APP_LOG(APP_LOG_LEVEL_DEBUG, "size: %d; sizeSq: %d", params.size, params.sizeSq);
 
   int16_t buf1[width+2];
   int16_t buf2[width+2];
@@ -141,7 +236,7 @@ void pm_moon_render(const GBitmap* bitmap, float phase) {
     for (uint16_t x = 0; x < width; x++) {
       int16_t h = x - width/2;
       int16_t v = y - height/2;
-      int16_t value = moon_pixel(h*MOON_WIDTH/width, v*MOON_HEIGHT/height, phase);
+      int16_t value = moon_pixel(width/2, phase, rotation, h, v);
       
       if (value < 0) value = WHITE;
       
@@ -180,6 +275,8 @@ void pm_moon_render(const GBitmap* bitmap, float phase) {
     nextRow = secondRow;
     secondRow = tmp;
   }
+
+  // free(params);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "...done");
 }
