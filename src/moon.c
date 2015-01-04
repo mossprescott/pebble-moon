@@ -139,8 +139,8 @@ static void init_params(RenderParams* params, uint16_t radius, float phase, floa
   else params->regime = 3;
 
   float p = cos_f(phase);
-  params->sr = sin_f(rotation);
-  params->cr = cos_f(rotation);
+  params->sr = sin_f(-rotation);
+  params->cr = cos_f(-rotation);
   params->oneOverR = 1.0f/radius;
   params->oneOverPR = 1.0/(p * radius);
 }
