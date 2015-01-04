@@ -10,7 +10,8 @@
   },
   "appKeys": {
     "KEY_LAT": 0,
-    "KEY_LON": 1
+    "KEY_LON": 1,
+    "KEY_TZ_OFFSET": 2
   },
   "resources": {
     "media": [
