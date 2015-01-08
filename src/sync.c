@@ -7,7 +7,7 @@ static uint8_t s_sync_buffer[256];
 // HACK: integer degrees means ~60 mi. resolution
 int32_t latitude = 40;
 int32_t longitude = -105;
-int32_t offset_minutes = -7*60;
+int32_t offset_minutes = 7*60;
   
 static void sync_changed_handler(const uint32_t key, const Tuple *new_tuple, const Tuple *old_tuple, void *context) {
   if (key == KEY_LAT && new_tuple->type == TUPLE_INT) {

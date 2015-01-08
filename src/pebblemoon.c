@@ -1,32 +1,71 @@
 #include <pebble.h>
+
+#include "graph.h"
 #include "moon.h"
 #include "sync.h"
 
-static Window *window;
-static TextLayer *time_layer;
-static GBitmap *moon_bitmap;
+static Window      *window;
+
+static TextLayer   *time_layer;
+static TextLayer   *date_layer;
+
+static GBitmap     *moon_bitmap;
 static BitmapLayer *moon_layer;
 
+static Layer       *graph_layer;
+static GraphData   *graph_data;
+
 static void init_moon() {
-  int size = 144;
+  int size = 108;
   moon_bitmap = gbitmap_create_blank((GSize) { .w = size, .h = size });
+}
+
+static void init_graph_data() {
+  graph_data->now = 0;
+
+  for (int i=0; i < 144; i += 1) {
+    int16_t s = i-75;
+    graph_data->sun[i] = 0.75 - s*s*0.0002; // HACK: should be NO_DATA
+    int16_t m = i-30;
+    graph_data->moon[i] = 0.5 - m*m*0.0004; // HACK: should be NO_DATA
+  }
+}
+
+static void update_graph(Layer *layer, GContext *ctx) {
+  render_graph(ctx, graph_data);
 }
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  time_layer = text_layer_create((GRect) { .origin = { 0, 0 }, .size = { bounds.size.w, 20 } });
+  time_layer = text_layer_create((GRect) { .origin = { 0, 0 }, .size = { 60, 30 } });
+  text_layer_set_font(time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28));
+  text_layer_set_text_alignment(time_layer, GTextAlignmentRight);
   text_layer_set_text(time_layer, "12:34");
-  text_layer_set_text_alignment(time_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(time_layer));
   
+  date_layer = text_layer_create((GRect) { .origin = { bounds.size.w-60, 0 }, .size = { 60-2, 30 } });
+  text_layer_set_font(date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
+  text_layer_set_text_alignment(date_layer, GTextAlignmentRight);
+  text_layer_set_text(date_layer, "1 Sun");
+  layer_add_child(window_layer, text_layer_get_layer(date_layer));
+
   uint16_t size = moon_bitmap->bounds.size.w;
   moon_layer = bitmap_layer_create((GRect) { 
-    .origin = { bounds.size.w/2 - size/2, 20 + (bounds.size.h - 20)/2 - size/2 },
+    .origin = { bounds.size.w/2 - size/2, 30 },
     .size = moon_bitmap->bounds.size });
   bitmap_layer_set_bitmap(moon_layer, moon_bitmap);
   layer_add_child(window_layer, bitmap_layer_get_layer(moon_layer));
+  
+  graph_layer = layer_create_with_data((GRect) { 
+    .origin = { 0, bounds.size.h - GRAPH_HEIGHT },
+    .size = { bounds.size.w, GRAPH_HEIGHT } }, 
+    sizeof(GraphData));
+  graph_data = (GraphData *) layer_get_data(graph_layer);
+  init_graph_data();
+  layer_set_update_proc(graph_layer, update_graph);
+  layer_add_child(window_layer, graph_layer);
 }
 
 static void window_unload(Window *window) {
@@ -38,19 +77,29 @@ static void window_unload(Window *window) {
 
 static void update_time(struct tm* tick_time) {
   // Create a long-lived buffer
-  static char buffer[] = "00:00";
+  static char time_buffer[] = "00:00";
 
   // Write the current hours and minutes into the buffer
   if(clock_is_24h_style() == true) {
     // Use 24 hour format
-    strftime(buffer, sizeof("00:00"), "%H:%M", tick_time);
+    strftime(time_buffer, sizeof("00:00"), "%H:%M", tick_time);
   } else {
     // Use 12 hour format
-    strftime(buffer, sizeof("00:00"), "%I:%M", tick_time);
+    strftime(time_buffer, sizeof("00:00"), "%I:%M", tick_time);
   }
 
   // Display this time on the TextLayer
-  text_layer_set_text(time_layer, buffer);
+  text_layer_set_text(time_layer, time_buffer);
+  
+  // Now format and update the date (note: %e is padded to two chars, with a leading space)
+  static char date_buffer[] = " 7 Saturday";  // Note: this should be more than enough for any conceivable locale
+  strftime(date_buffer, sizeof(" 7 Saturday"), "%e %a", tick_time);
+  text_layer_set_text(date_layer, date_buffer);
+  
+  // Scale the current time to a 144-point scale where 6am/pm are always at the 
+  // left and right edges:
+  graph_data->now = ((tick_time->tm_hour+6) % 12)*12 + tick_time->tm_min/5;
+  layer_mark_dirty(graph_layer);
 }
 
 static void update_moon(struct tm* tick_time) {
