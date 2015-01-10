@@ -1,5 +1,6 @@
 #include <pebble.h>
 
+#include "astronomy.h"
 #include "graph.h"
 #include "moon.h"
 #include "sync.h"
@@ -29,6 +30,20 @@ static void init_graph_data() {
     int16_t m = i-30;
     graph_data->moon[i] = 0.5 - m*m*0.0004; // HACK: should be NO_DATA
   }
+}
+
+static void set_day_night_mode(bool isDay) {
+  GColor fg = isDay ? GColorBlack : GColorWhite;
+  GColor bg = isDay ? GColorWhite : GColorBlack;
+  
+  window_set_background_color(window, bg);
+  text_layer_set_background_color(time_layer, bg);
+  text_layer_set_text_color(time_layer, fg);
+  text_layer_set_background_color(date_layer, bg);
+  text_layer_set_text_color(date_layer, fg);
+  
+  graph_data->foreground = fg;
+  graph_data->background = bg;
 }
 
 static void update_graph(Layer *layer, GContext *ctx) {
@@ -70,12 +85,19 @@ static void window_load(Window *window) {
 
 static void window_unload(Window *window) {
   text_layer_destroy(time_layer);
+  text_layer_destroy(date_layer);
   
   gbitmap_destroy((GBitmap *) bitmap_layer_get_bitmap(moon_layer));
   bitmap_layer_destroy(moon_layer);
 }
 
+static bool is_day(struct tm* tick_time) {
+  return tick_time->tm_min % 2;  // HACK
+}
+
 static void update_time(struct tm* tick_time) {
+  set_day_night_mode(is_day(tick_time));
+  
   // Create a long-lived buffer
   static char time_buffer[] = "00:00";
 
@@ -113,15 +135,19 @@ static void update_moon(struct tm* tick_time) {
   // APP_LOG(APP_LOG_LEVEL_DEBUG, "phase: %d", (int16_t) (phase*100));
   // APP_LOG(APP_LOG_LEVEL_DEBUG, "hour: %d", (int16_t) tick_time->tm_hour);
   
-  pm_moon_render(moon_bitmap, phase, rotation);
+  pm_moon_render(moon_bitmap, phase, rotation, is_day(tick_time));
   
+  if (moon_layer != NULL) layer_mark_dirty((Layer *) moon_layer);
+
   APP_LOG(APP_LOG_LEVEL_DEBUG, "doner");
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+  float almanac = almanac_time(tick_time, 420);  // HACK
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "almanac: %d", (int16_t) almanac);
+  
   update_time(tick_time);
   update_moon(tick_time);
-  layer_mark_dirty((Layer *) moon_layer);
 }
 
 static void init(void) {

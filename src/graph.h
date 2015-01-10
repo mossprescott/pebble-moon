@@ -4,6 +4,8 @@
 
 typedef struct {
   int16_t now; // index of the current time, from 0 to 143
+  GColor foreground;
+  GColor background;
   
   float sun[144];
   float moon[144];

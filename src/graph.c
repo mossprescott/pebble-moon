@@ -1,10 +1,14 @@
 #include "graph.h"
 
-#define BASELINE (GRAPH_HEIGHT-8)
+#define BASELINE (GRAPH_HEIGHT/2)
 #define SUN_RADIUS 2
 
+static int16_t toY(float value) {
+  return BASELINE*(1.0 - value);
+}
+
 void render_graph(GContext* ctx, GraphData *data) {
-  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_context_set_stroke_color(ctx, data->foreground);
   
   graphics_draw_line(ctx,
     (GPoint) { .x = 0, .y = BASELINE },
@@ -27,8 +31,7 @@ void render_graph(GContext* ctx, GraphData *data) {
   for (int i=0; i < 144; i += 1) {
     float val = data->sun[i];
     if (val != NO_DATA) {
-      int16_t y = BASELINE*(1.0 - val);
-      graphics_draw_pixel(ctx, (GPoint) { .x = i, .y = y });
+      graphics_draw_pixel(ctx, (GPoint) { .x = i, .y = toY(val) });
     }
   }
 
@@ -36,8 +39,7 @@ void render_graph(GContext* ctx, GraphData *data) {
   for (int i=0; i < 144; i += 2) {
     float val = data->moon[i];
     if (val != NO_DATA) {
-      int16_t y = BASELINE*(1.0 - val);
-      graphics_draw_pixel(ctx, (GPoint) { .x = i, .y = y });
+      graphics_draw_pixel(ctx, (GPoint) { .x = i, .y = toY(val) });
     }
   }
   
@@ -60,8 +62,8 @@ void render_graph(GContext* ctx, GraphData *data) {
     graphics_draw_pixel(ctx, (GPoint) { .x = sunX - (SUN_RADIUS + 2), .y = sunY + SUN_RADIUS });
 
     // The sun's disk:
-    graphics_context_set_fill_color(ctx, GColorWhite);
-    graphics_context_set_stroke_color(ctx, GColorBlack);
+    graphics_context_set_fill_color(ctx, data->background);
+    graphics_context_set_stroke_color(ctx, data->foreground);
     graphics_fill_circle(ctx, (GPoint) { .x = sunX, .y = sunY }, SUN_RADIUS);
     graphics_draw_circle(ctx, (GPoint) { .x = sunX, .y = sunY }, SUN_RADIUS);
   }

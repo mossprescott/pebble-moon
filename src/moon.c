@@ -193,7 +193,7 @@ static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
 /*
 Render the (rotated, masked) moon image into a bitmap, using Atkinson dithering.
 */
-void pm_moon_render(const GBitmap* bitmap, float phase, float rotation) {
+void pm_moon_render(const GBitmap* bitmap, float phase, float rotation, bool isDay) {
   // APP_LOG(APP_LOG_LEVEL_DEBUG, "Rendering moon...");
 
   uint16_t width = bitmap->bounds.size.w;
@@ -221,7 +221,7 @@ void pm_moon_render(const GBitmap* bitmap, float phase, float rotation) {
       int16_t v = y - height/2;
       int16_t value = moon_pixel2(&params, h, v);
       
-      if (value < 0) value = WHITE;
+      if (value < 0) value = isDay ? WHITE : BLACK;
       
       int16_t corrected = value - err0;
       
@@ -243,10 +243,12 @@ void pm_moon_render(const GBitmap* bitmap, float phase, float rotation) {
       secondRow[x] = 0;
 
       // Diffuse the error to 6 neighboring pixels:
-      err1 += error;
+      // err1 += error;
+      err1 += error*2;  // deviate from Atkinson to diffuse the prserve the original contrast
       err2 += error;
       if (x > 0) nextRow[x-1] += error;
-      nextRow[x] += error;
+      // nextRow[x] += error;
+      nextRow[x] += error*2;  // deviate from Atkinson to diffuse the prserve the original contrast
       nextRow[x+1] += error;
       secondRow[x] += error;
       
