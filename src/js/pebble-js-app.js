@@ -18,8 +18,8 @@ function locationSuccess(pos) {
   console.log('lat: ' + pos.coords.latitude + '; lon: ' + pos.coords.longitude + '; alt: ' + pos.coords.altitude);
 
   // note: truncate coords to int
-  val lat = pos.coords.latitude | 0;  
-  val lon = pos.coords.longitude | 0;
+  var lat = pos.coords.latitude | 0; 
+  var lon = pos.coords.longitude | 0;
 
   // local time offset, in minutes, from GMT:
   var offset = new Date().getTimezoneOffset();
@@ -39,7 +39,7 @@ Pebble.addEventListener('ready',
     console.log('Moon JS ready and running!');
 
     console.log('Requesting location...')
-    // navigator.geolocation.getCurrentPosition(locationSuccess, locationError, locationOptions);
+    navigator.geolocation.getCurrentPosition(locationSuccess, locationError, locationOptions);
   }
 );
 
@@ -47,7 +47,7 @@ Pebble.addEventListener('appmessage', function(e) {
   console.log('AppMessage received: ' + e);
 });
 
-setTimeout(funcion() {
+setTimeout(function() {
   Pebble.sendAppMessage({ 0: 10 }, 
     function(e) {
       console.log('Send successful.');
