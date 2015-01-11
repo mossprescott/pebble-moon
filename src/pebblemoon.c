@@ -46,7 +46,7 @@ static void set_day_night_mode(bool isDay) {
   graph_data->background = bg;
 }
 
-static void update_graph(Layer *layer, GContext *ctx) {
+static void update_graph_proc(Layer *layer, GContext *ctx) {
   render_graph(ctx, graph_data);
 }
 
@@ -79,7 +79,7 @@ static void window_load(Window *window) {
     sizeof(GraphData));
   graph_data = (GraphData *) layer_get_data(graph_layer);
   init_graph_data();
-  layer_set_update_proc(graph_layer, update_graph);
+  layer_set_update_proc(graph_layer, update_graph_proc);
   layer_add_child(window_layer, graph_layer);
 }
 
@@ -117,11 +117,6 @@ static void update_time(struct tm* tick_time) {
   static char date_buffer[] = " 7 Saturday";  // Note: this should be more than enough for any conceivable locale
   strftime(date_buffer, sizeof(" 7 Saturday"), "%e %a", tick_time);
   text_layer_set_text(date_layer, date_buffer);
-  
-  // Scale the current time to a 144-point scale where 6am/pm are always at the 
-  // left and right edges:
-  graph_data->now = ((tick_time->tm_hour+6) % 12)*12 + tick_time->tm_min/5;
-  layer_mark_dirty(graph_layer);
 }
 
 static void update_moon(struct tm* tick_time) {
@@ -142,12 +137,20 @@ static void update_moon(struct tm* tick_time) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "doner");
 }
 
+static void update_graph(struct tm *tick_time) {
+  // Scale the current time to a 144-point scale where 6am/pm are always at the 
+  // left and right edges:
+  graph_data->now = ((tick_time->tm_hour+6) % 12)*12 + tick_time->tm_min/5;
+  layer_mark_dirty(graph_layer);
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   float almanac = almanac_time(tick_time, 420);  // HACK
   APP_LOG(APP_LOG_LEVEL_DEBUG, "almanac: %d", (int16_t) almanac);
   
   update_time(tick_time);
   update_moon(tick_time);
+  update_graph(tick_time);
 }
 
 static void init(void) {
