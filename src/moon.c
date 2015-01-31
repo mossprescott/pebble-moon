@@ -221,7 +221,14 @@ void pm_moon_render(const GBitmap* bitmap, float phase, float rotation, bool isD
       int16_t v = y - height/2;
       int16_t value = moon_pixel2(&params, h, v);
       
-      if (value < 0) value = isDay ? WHITE : BLACK;
+      if (value < 0) {
+        value = isDay ? WHITE : BLACK;
+      }
+      else {
+        uint16_t clampLow = isDay ? 63 : 0;
+        uint16_t clampHi = isDay ? 255 : 191;
+        value = value*(clampHi - clampLow)/255 + clampLow;
+      }
       
       int16_t corrected = value - err0;
       
