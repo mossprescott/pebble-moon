@@ -3,7 +3,12 @@
 #define GRAPH_HEIGHT 48
 
 typedef struct {
-  int16_t now; // index of the current time, from 0 to 143
+  // Index of the current time, from 0 to 143:
+  int16_t now;
+  
+  // Hour at the left edge of the graph, 0-23 (although actually negative values are also used):
+  int16_t baseHour;
+
   GColor foreground;
   GColor background;
   

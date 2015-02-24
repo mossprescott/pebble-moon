@@ -125,14 +125,15 @@ float sun_elevation(double almanac, float latDeg, float longDeg, float hour) {
 
   // Elevation:
   float elevation = 
-    // cos_f(deg2pebble(hour*15));
+//     cos_f(deg2pebble(hour*15));
     // asin_f(cos_f(deg2pebble(hour*15)))/2;
 
     // skip asin, since sin is already the height anyway, right?
     // asin_f(
-    (sin_f(dec) * sin_f(deg2pebble(latDeg))) +
-    (cos_f(dec) * cos_f(deg2pebble(latDeg)) * cos_f(hourAngle));
-  
+//     (sin_f(dec) * sin_f(deg2pebble(latDeg))) +
+//     (cos_f(dec) * cos_f(deg2pebble(latDeg)) * cos_f(hourAngle));
+    cos_f(deg2pebble(latDeg)) * cos_f(hourAngle);
+    
     // (sin_f(dec) * sin_f(deg2pebble(latDeg))) +
     // (cos_f(dec) * cos_f(deg2pebble(latDeg)) * cos_f(hourAngle)));
   

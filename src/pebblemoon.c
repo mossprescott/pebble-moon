@@ -92,12 +92,14 @@ static void window_unload(Window *window) {
 }
 
 static bool is_day(struct tm* tick_time) {
-  return tick_time->tm_min % 2;  // HACK
+//   return tick_time->tm_min % 2;  // HACK
+  if (graph_data)
+    return graph_data->sun[graph_data->now] > 0;
+  else
+    return true;
 }
 
 static void update_time(struct tm* tick_time) {
-  set_day_night_mode(is_day(tick_time));
-  
   // Create a long-lived buffer
   static char time_buffer[] = "00:00";
 
@@ -137,53 +139,66 @@ static void update_moon(struct tm* tick_time) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "doner");
 }
 
-static void update_graph(struct tm *tick_time) {
+static void update_graph_data(struct tm *tick_time) {
   // Scale the current time to a 144-point scale where 6am/pm are always at the 
   // left and right edges:
   graph_data->now = ((tick_time->tm_hour+6) % 12)*12 + tick_time->tm_min/5;
-  
+
   // update the sun and moon positions
   // TODO: only twice/day?
+
+  graph_data->baseHour = 6;
+//   graph_data->baseHour = tick_time->tm_hour;
+  if (graph_data->baseHour < 6) graph_data->baseHour = -6;
+  else if (graph_data->baseHour >= 18) graph_data->baseHour = 18;
+  
   for (int32_t tick = 0; tick < 144; tick += 1) {
     float almanac = almanac_time((int32_t) tick_time->tm_year + 1900,
       tick_time->tm_yday,
-      6,
+      graph_data->baseHour,
       tick*5 + 420);  // HACK
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "almanac:   %d..%ld", (int16_t) almanac, (int32_t) (almanac*10000));
-    float sun_elev = sun_elevation(almanac, 40, -105, 6 + (tick*5)/60.0);
+    float sun_elev = sun_elevation(almanac, 40, -105, graph_data->baseHour + (tick*5)/60.0);
     graph_data->sun[tick] = sun_elev;
   }
+}
   
+static void update_graph(struct tm *tick_time) {
   layer_mark_dirty(graph_layer);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  float almanac_f = almanac_time_f(
-    (int32_t) tick_time->tm_year + 1900,
-    tick_time->tm_yday,
-    tick_time->tm_hour,
-    tick_time->tm_min + 420);  // HACK
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "almanac_f: %d..%ld", (int16_t) almanac_f, (int32_t) (almanac_f*10000));
+//   float almanac_f = almanac_time_f(
+//     (int32_t) tick_time->tm_year + 1900,
+//     tick_time->tm_yday,
+//     tick_time->tm_hour,
+//     tick_time->tm_min + 420);  // HACK
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "almanac_f: %d..%ld", (int16_t) almanac_f, (int32_t) (almanac_f*10000));
   
-  double almanac = almanac_time(
-    (int32_t) tick_time->tm_year + 1900,
-    tick_time->tm_yday,
-    tick_time->tm_hour,
-    tick_time->tm_min + 420);  // HACK
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "almanac:   %d..%ld", (int16_t) almanac, (int32_t) (almanac*10000));
+//   double almanac = almanac_time(
+//     (int32_t) tick_time->tm_year + 1900,
+//     tick_time->tm_yday,
+//     tick_time->tm_hour,
+//     tick_time->tm_min + 420);  // HACK
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "almanac:   %d..%ld", (int16_t) almanac, (int32_t) (almanac*10000));
   
-  float elNow = sun_elevation(almanac, 40, -105, tick_time->tm_hour);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "elevation now(x1000):  %ld", (int32_t) (elNow*1000));
+//   float elNow = sun_elevation(almanac, 40, -105, tick_time->tm_hour);
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "elevation now(x1000):  %ld", (int32_t) (elNow*1000));
   
-  double almanacNoon = almanac_time(
-    (int32_t) tick_time->tm_year + 1900,
-    tick_time->tm_yday,
-    12,
-    tick_time->tm_min + 420);  // HACK
-  float elNoon = sun_elevation(almanacNoon, 40, -105, 12);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "elevation noon(x1000): %ld", (int32_t) (elNoon*1000));
+//   double almanacNoon = almanac_time(
+//     (int32_t) tick_time->tm_year + 1900,
+//     tick_time->tm_yday,
+//     12,
+//     tick_time->tm_min + 420);  // HACK
+//   float elNoon = sun_elevation(almanacNoon, 40, -105, 12);
+//   APP_LOG(APP_LOG_LEVEL_DEBUG, "elevation noon(x1000): %ld", (int32_t) (elNoon*1000));
   
+  // HACK
+//   tick_time->tm_hour -= 8;
   
+  update_graph_data(tick_time);
+  set_day_night_mode(is_day(tick_time));
+
   update_time(tick_time);
   update_moon(tick_time);
   update_graph(tick_time);
