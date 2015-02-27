@@ -174,6 +174,7 @@ static int16_t moon_pixel2(RenderParams* params, int16_t x, int16_t y) {
 // Set/clear a single pixel anywhere in the bitmap, without bounds checking.
 // True <=> black
 static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
+#ifdef PBL_PLATFORM_APLITE
   unsigned char* bits = bitmap->addr;
   
   uint16_t byte_num = y*(bitmap->row_size_bytes) + (x >> 3);
@@ -184,6 +185,13 @@ static void set_pixel(const GBitmap *bitmap, uint16_t x, uint16_t y, bool bit) {
   else {
     bits[byte_num] |= 1 << bit_num;
   }
+#else
+  // TODO: check bitmap format
+  uint8_t *bits = gbitmap_get_data(bitmap);
+  uint16_t row_size_bytes = gbitmap_get_bytes_per_row(bitmap);
+  uint16_t byte_num = y*row_size_bytes + x;
+  bits[byte_num] = bit ? GColorBlackARGB8 : GColorCelesteARGB8;
+#endif
 }
 
 #define BLACK 0
@@ -196,8 +204,13 @@ Render the (rotated, masked) moon image into a bitmap, using Atkinson dithering.
 void pm_moon_render(const GBitmap* bitmap, float phase, float rotation, bool isDay) {
   // APP_LOG(APP_LOG_LEVEL_DEBUG, "Rendering moon...");
 
-  uint16_t width = bitmap->bounds.size.w;
-  uint16_t height = bitmap->bounds.size.h;
+#ifdef PBL_PLATFORM_APLITE
+  GRect bounds = bitmap->bounds;
+#else
+  GRect bounds = gbitmap_get_bounds(bitmap);
+#endif
+  uint16_t width = bounds.size.w;
+  uint16_t height = bounds.size.h;
 
   RenderParams params;
   init_params(&params, width/2, phase, rotation);
@@ -251,11 +264,11 @@ void pm_moon_render(const GBitmap* bitmap, float phase, float rotation, bool isD
 
       // Diffuse the error to 6 neighboring pixels:
       // err1 += error;
-      err1 += error*2;  // deviate from Atkinson to diffuse the prserve the original contrast
+      err1 += error*2;  // deviate from Atkinson to preserve the original contrast
       err2 += error;
       if (x > 0) nextRow[x-1] += error;
       // nextRow[x] += error;
-      nextRow[x] += error*2;  // deviate from Atkinson to diffuse the prserve the original contrast
+      nextRow[x] += error*2;  // deviate from Atkinson to preserve the original contrast
       nextRow[x+1] += error;
       secondRow[x] += error;
       

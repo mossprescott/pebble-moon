@@ -1,30 +1,35 @@
 {
-    "appKeys": {
-        "KEY_LAT": 0,
-        "KEY_LON": 1,
-        "KEY_TZ_OFFSET": 2
-    },
-    "capabilities": [
-        "location"
-    ],
-    "companyName": "theprescotts",
-    "longName": "Moon",
-    "projectType": "native",
-    "resources": {
-        "media": [
-            {
-                "file": "images/menu_icon.png",
-                "menuIcon": true,
-                "name": "IMAGE_MENU_ICON",
-                "type": "png"
-            }
-        ]
-    },
-    "shortName": "Moon",
-    "uuid": "ea4b4e0d-f335-49b4-b13f-91e9bb2bfcff",
-    "versionCode": 1,
-    "versionLabel": "0.1",
-    "watchapp": {
-        "watchface": true
-    }
+  "sdkVersion": "3",
+  "targetPlatforms": [
+    "aplite",
+    "basalt"
+  ],
+  "appKeys": {
+    "KEY_LAT": 0,
+    "KEY_LON": 1,
+    "KEY_TZ_OFFSET": 2
+  },
+  "capabilities": [
+    "location"
+  ],
+  "companyName": "theprescotts",
+  "longName": "Moon",
+  "projectType": "native",
+  "resources": {
+    "media": [
+      {
+        "file": "images/menu_icon.png",
+        "menuIcon": true,
+        "name": "IMAGE_MENU_ICON",
+        "type": "png"
+      }
+    ]
+  },
+  "shortName": "Moon",
+  "uuid": "ea4b4e0d-f335-49b4-b13f-91e9bb2bfcff",
+  "versionCode": 1,
+  "versionLabel": "0.1",
+  "watchapp": {
+    "watchface": true
+  }
 }

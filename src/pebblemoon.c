@@ -1,5 +1,6 @@
 #include <pebble.h>
 
+#include "pebblemoon.h"
 #include "astronomy.h"
 #include "graph.h"
 #include "moon.h"
@@ -18,7 +19,12 @@ static GraphData   *graph_data;
 
 static void init_moon() {
   int size = 108;
+#ifdef PBL_PLATFORM_APLITE
   moon_bitmap = gbitmap_create_blank((GSize) { .w = size, .h = size });
+#else
+  // TODO: check PBL_COLOR?
+  moon_bitmap = gbitmap_create_blank((GSize) { .w = size, .h = size }, GBitmapFormat8Bit);
+#endif  
 }
 
 static void init_graph_data() {
@@ -33,8 +39,8 @@ static void init_graph_data() {
 }
 
 static void set_day_night_mode(bool isDay) {
-  GColor fg = isDay ? GColorBlack : GColorWhite;
-  GColor bg = isDay ? GColorWhite : GColorBlack;
+  GColor fg = isDay ? DAY_FG : NIGHT_FG;
+  GColor bg = isDay ? DAY_BG : NIGHT_BG;
   
   window_set_background_color(window, bg);
   text_layer_set_background_color(time_layer, bg);
@@ -66,10 +72,15 @@ static void window_load(Window *window) {
   text_layer_set_text(date_layer, "1 Sun");
   layer_add_child(window_layer, text_layer_get_layer(date_layer));
 
-  uint16_t size = moon_bitmap->bounds.size.w;
+#ifdef PBL_PLATFORM_APLITE
+  GRect moon_bounds = moon_bitmap->bounds;
+#else
+  GRect moon_bounds = gbitmap_get_bounds(moon_bitmap);
+#endif
+  uint16_t size = moon_bounds.size.w;
   moon_layer = bitmap_layer_create((GRect) { 
     .origin = { bounds.size.w/2 - size/2, 30 },
-    .size = moon_bitmap->bounds.size });
+    .size = moon_bounds.size });
   bitmap_layer_set_bitmap(moon_layer, moon_bitmap);
   layer_add_child(window_layer, bitmap_layer_get_layer(moon_layer));
   
@@ -147,10 +158,11 @@ static void update_graph_data(struct tm *tick_time) {
   // update the sun and moon positions
   // TODO: only twice/day?
 
-  graph_data->baseHour = 6;
-//   graph_data->baseHour = tick_time->tm_hour;
-  if (graph_data->baseHour < 6) graph_data->baseHour = -6;
-  else if (graph_data->baseHour >= 18) graph_data->baseHour = 18;
+  // graph_data->baseHour = 6;
+  // graph_data->baseHour = tick_time->tm_hour;
+  if (tick_time->tm_hour < 6) graph_data->baseHour = -6;
+  else if (tick_time->tm_hour >= 18) graph_data->baseHour = 18;
+  else graph_data->baseHour = 6;
   
   for (int32_t tick = 0; tick < 144; tick += 1) {
     float almanac = almanac_time((int32_t) tick_time->tm_year + 1900,
