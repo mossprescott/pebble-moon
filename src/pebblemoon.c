@@ -157,8 +157,6 @@ static void update_graph_data(struct tm *tick_time) {
   // update the sun and moon positions
   // TODO: only twice/day?
 
-  // graph_data->baseHour = 6;
-  // graph_data->baseHour = tick_time->tm_hour;
   if (tick_time->tm_hour < 6) graph_data->baseHour = -6;
   else if (tick_time->tm_hour >= 18) graph_data->baseHour = 18;
   else graph_data->baseHour = 6;
@@ -205,7 +203,8 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 //   APP_LOG(APP_LOG_LEVEL_DEBUG, "elevation noon(x1000): %ld", (int32_t) (elNoon*1000));
   
   // HACK
-//   tick_time->tm_hour -= 8;
+  // tick_time->tm_hour -= 8;
+  // tick_time->tm_min += 30;
   
   update_graph_data(tick_time);
   set_day_night_mode(is_day(tick_time));
