@@ -1,7 +1,7 @@
 #include <pebble.h>
 
-#include "pebblemoon.h"
 #include "astronomy.h"
+#include "colors.h"
 #include "graph.h"
 #include "moon.h"
 #include "sync.h"
@@ -39,17 +39,16 @@ static void init_graph_data() {
 }
 
 static void set_day_night_mode(bool isDay) {
-  GColor fg = isDay ? DAY_FG : NIGHT_FG;
-  GColor bg = isDay ? DAY_BG : NIGHT_BG;
+  // GColor fg = isDay ? DAY_FG : NIGHT_FG;
+  // GColor bg = isDay ? DAY_BG : NIGHT_BG;
   
-  window_set_background_color(window, bg);
-  text_layer_set_background_color(time_layer, bg);
-  text_layer_set_text_color(time_layer, fg);
-  text_layer_set_background_color(date_layer, bg);
-  text_layer_set_text_color(date_layer, fg);
+  window_set_background_color(window, UI_BG(isDay));
+  text_layer_set_background_color(time_layer, UI_BG(isDay));
+  text_layer_set_text_color(time_layer, UI_FG(isDay));
+  text_layer_set_background_color(date_layer, UI_BG(isDay));
+  text_layer_set_text_color(date_layer, UI_FG(isDay));
   
-  graph_data->foreground = fg;
-  graph_data->background = bg;
+  graph_data->isDay = isDay;
 }
 
 static void update_graph_proc(Layer *layer, GContext *ctx) {

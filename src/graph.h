@@ -9,8 +9,7 @@ typedef struct {
   // Hour at the left edge of the graph, 0-23 (although actually negative values are also used):
   int16_t baseHour;
 
-  GColor foreground;
-  GColor background;
+  bool isDay;
   
   float sun[144];
   float moon[144];

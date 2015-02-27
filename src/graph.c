@@ -1,5 +1,6 @@
 #include "graph.h"
-#include "pebblemoon.h"
+
+#include "colors.h"
 
 #define BASELINE (GRAPH_HEIGHT/2)
 #define SUN_RADIUS 2
@@ -24,7 +25,7 @@ static void drawHour(GContext* ctx, int16_t hour, int16_t x, GTextAlignment alig
 }
 
 void render_graph(GContext* ctx, GraphData *data) {
-  graphics_context_set_stroke_color(ctx, data->foreground);
+  graphics_context_set_stroke_color(ctx, UI_FG(data->isDay));
   
   graphics_draw_line(ctx,
     (GPoint) { .x = 0, .y = BASELINE },
@@ -43,13 +44,13 @@ void render_graph(GContext* ctx, GraphData *data) {
     }
   }
 
-  graphics_context_set_text_color(ctx, data->foreground);
+  graphics_context_set_text_color(ctx, UI_FG(data->isDay));
   drawHour(ctx, data->baseHour + 3,  36, GTextAlignmentCenter);
   drawHour(ctx, data->baseHour + 6,  72, GTextAlignmentCenter);
   drawHour(ctx, data->baseHour + 9, 108, GTextAlignmentCenter);
 
   // Plot sun, showing every pixel:
-  graphics_context_set_stroke_color(ctx, SUN_DAY_FG);  // TODO
+  graphics_context_set_stroke_color(ctx, SUN_FG(data->isDay));
   for (int i=0; i < 144; i += 1) {
     float val = data->sun[i];
     if (val != NO_DATA) {
@@ -76,8 +77,8 @@ void render_graph(GContext* ctx, GraphData *data) {
     graphics_draw_pixel(ctx, (GPoint) { .x = sunX - (SUN_RADIUS + 2), .y = sunY + SUN_RADIUS });
 
     // The sun's disk:
-    graphics_context_set_fill_color(ctx, data->background);
-    graphics_context_set_stroke_color(ctx, SUN_DAY_FG);
+    graphics_context_set_fill_color(ctx, UI_BG(data->isDay));
+    graphics_context_set_stroke_color(ctx, SUN_FG(data->isDay));
     graphics_fill_circle(ctx, (GPoint) { .x = sunX, .y = sunY }, SUN_RADIUS);
     graphics_draw_circle(ctx, (GPoint) { .x = sunX, .y = sunY }, SUN_RADIUS);
   }
