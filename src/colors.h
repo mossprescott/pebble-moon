@@ -10,7 +10,7 @@
 
 #else
 
-#define __on(isDay) (isDay ? GColorWhite : GColorBlack)
+#define __on(isDay) (isDay ? GColorBlack : GColorWhite)
 #define __off(isDay) __on(!isDay)
 
 #define UI_FG __on
